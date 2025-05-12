@@ -1,0 +1,166 @@
+import java.util.*;
+
+public class Elevator {
+    private final int no;
+    private int currFloor;
+    private final int capacity;
+    private boolean isUnderMaintenance;
+    private ElevatorStatus status;
+    private Direction direction;
+    public List<Integer> stops;
+    private final Queue<Request> requests;
+
+    public Elevator(int no,int currFloor,int capacity,List<Integer> stops){
+        this.no = no;
+        this.capacity = capacity;
+        this.currFloor = currFloor;
+        this.direction = Direction.UP;
+        this.stops = stops;
+        status = ElevatorStatus.AVAILABLE;
+        requests = new LinkedList<>();
+    }
+
+    public synchronized void addRequest(Request request){
+        if (isUnderMaintenance()){
+            System.out.println("we couldn't fulfill your request due to under maintenance");
+            return;
+        }
+        if (isAvailable()==ElevatorStatus.AVAILABLE){
+            requests.add(request);
+            System.out.println("Elevator "+no+" requested");
+            if (requests.size()==capacity) status = ElevatorStatus.UNAVAILABLE;
+        }
+        else {
+            System.out.println("unable to assign the elevator due to unavailability");
+        }
+    }
+
+    public synchronized void processRequest() throws InterruptedException {
+        System.out.println("Elevator no : "+no);
+        while (!requests.isEmpty()) {
+            Request request = requests.poll();
+            processRequest(request);
+            System.out.println("------------------------------------");
+        }
+    }
+
+    private synchronized void processRequest(Request request) throws InterruptedException {
+        int currIndex = stops.indexOf(currFloor);
+        int sourceIndex = stops.indexOf(request.source());
+
+        if (currFloor < request.source()) {
+            setAsUnavailable();
+            setDirection(Direction.UP);
+            for (int floor = currIndex; floor <= sourceIndex; floor++) {
+                System.out.println("Elevator is at " + stops.get(floor) + " direction " + ((direction == Direction.UP) ? "UP" : "DOWN"));
+                setCurrFloor(floor);
+                Thread.sleep(1000);
+            }
+        }
+        else if (currFloor> request.source()) {
+            setAsUnavailable();
+            setDirection(Direction.DOWN);
+            for (int floor = currIndex; floor>= sourceIndex; floor--) {
+                System.out.println("Elevator is at " + stops.get(floor) + " direction " + ((direction == Direction.UP) ? "UP" : "DOWN"));
+                setCurrFloor(floor);
+                Thread.sleep(1000);
+            }
+        }
+
+        if (request.getDirection()==Direction.UP){
+            gotoUpward(request);
+        }
+        else {
+            gotoDownward(request);
+        }
+        status = ElevatorStatus.AVAILABLE;
+    }
+
+    public synchronized void gotoUpward(Request request) throws InterruptedException {
+        int sourceIndex = stops.indexOf(request.source());
+        int destIndex = stops.indexOf(request.destination());
+        setDirection(Direction.UP);
+        setAsUnavailable();
+
+        for (int floor=sourceIndex+1;floor<=destIndex;floor++) {
+            System.out.println("Elevator is at " + stops.get(floor) + " direction " + ((direction == Direction.UP) ? "UP" : "DOWN"));
+            setCurrFloor(floor);
+            Thread.sleep(1000);
+        }
+    }
+
+    public synchronized void gotoDownward(Request request) throws InterruptedException {
+        int sourceIndex = stops.indexOf(request.source());
+        int destIndex = stops.indexOf(request.destination());
+        setDirection(Direction.DOWN);
+        setAsUnavailable();
+
+        for (int floor=sourceIndex-1;floor>=destIndex;floor--) {
+            System.out.println("Elevator is at " + stops.get(floor) + " direction " + ((direction == Direction.UP) ? "UP" : "DOWN"));
+            setCurrFloor(floor);
+            Thread.sleep(1000);
+        }
+    }
+
+    public int getNoOfStops(Request request){
+        int currIndex = stops.indexOf(currFloor);
+        int sourceIndex = stops.indexOf(request.source());
+        int destIndex = stops.indexOf(request.destination());
+        int totalStops = Math.abs(currIndex-sourceIndex)+1;
+        totalStops += Math.abs(sourceIndex-destIndex);
+        return totalStops;
+    }
+
+    public Direction getDirection(Request request) {
+        if (currFloor< request.source()){
+            return Direction.UP;
+        }
+        if (currFloor>request.source()){
+            return Direction.DOWN;
+        }
+        return request.getDirection();
+    }
+
+    public int getNo() {
+        return no;
+    }
+
+    public void displayElevator() {
+        System.out.println("Elevator " + no + " is at floor " + currFloor);
+    }
+
+    public void setDirection(Direction direction) {
+        this.direction = direction;
+    }
+
+    public void setAsUnavailable(){
+        status = ElevatorStatus.UNAVAILABLE;
+    }
+    public ElevatorStatus isAvailable() {
+        return status;
+    }
+
+    public void setUnderMaintenance() {
+        this.isUnderMaintenance = true;
+    }
+
+    public boolean isUnderMaintenance() {
+        return isUnderMaintenance;
+    }
+
+    public void releaseUnderMaintenance(){
+        isUnderMaintenance = false;
+    }
+
+    public void setCurrFloor(int currFloor) {
+        this.currFloor = currFloor;
+    }
+
+    public int getCurrFloor() {
+        return currFloor;
+    }
+
+    public List<Integer> getStops() {
+        return stops;
+    }
+}
