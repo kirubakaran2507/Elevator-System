@@ -1,0 +1,118 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class ElevatorSystem {
+    private static ElevatorSystem elevatorSystem;
+    private final List<Elevator> elevators;
+
+    private ElevatorSystem(){
+        elevators = new ArrayList<>();
+    }
+
+    public static ElevatorSystem getInstance(){
+        if (elevatorSystem==null){
+            elevatorSystem = new ElevatorSystem();
+        }
+        return elevatorSystem;
+    }
+
+    public synchronized void addElevator(Elevator elevator){
+        elevators.add(elevator);
+    }
+
+    public synchronized void addRequest(Request request){
+        int source = request.source();
+        int destination = request.destination();
+
+        if (source<0 || source>10 || destination<0 || destination>10 || source==destination){
+            System.out.println("Invalid source or destination");
+            return;
+        }
+
+        List<Elevator> validElevators = getValidElevators(request);
+        List<Elevator> nearestElevators = getNearestElevators(validElevators,request);
+        List<Elevator> minStopElevators = getMinStopsElevators(nearestElevators,request);
+        List<Elevator> sameDirElevators = getSameDirElevators(minStopElevators,request);
+
+        if (!sameDirElevators.isEmpty()){
+            sameDirElevators.get(sameDirElevators.size()-1).addRequest(request);
+        }
+        else if (!minStopElevators.isEmpty()){
+            minStopElevators.get(0).addRequest(request);
+        }
+        else if (!nearestElevators.isEmpty()){
+            nearestElevators.get(nearestElevators.size()-1).addRequest(request);
+        }
+        else if (!validElevators.isEmpty()){
+            validElevators.get(0).addRequest(request);
+        }
+        else {
+            System.out.println("No elevators available");
+        }
+    }
+
+    private List<Elevator> getValidElevators(Request request){
+        List<Elevator> validElevators = new ArrayList<>();
+        for (Elevator elevator : elevators){
+            if (elevator.getStops().contains(request.source()) &&
+                    elevator.getStops().contains(request.destination())){
+                validElevators.add(elevator);
+            }
+        }
+        return validElevators;
+    }
+
+    private List<Elevator> getNearestElevators(List<Elevator> elevators,Request request){
+        List<Elevator> nearElevators = new ArrayList<>();
+        int minDistance = Integer.MAX_VALUE;
+
+        for (Elevator elevator : elevators){
+            int distance = Math.abs(request.source()-elevator.getCurrFloor());
+            if (minDistance>=distance){
+                nearElevators.add(elevator);
+                minDistance = distance;
+            }
+        }
+        return nearElevators;
+    }
+
+    public List<Elevator> getSameDirElevators(List<Elevator> elevators,Request request){
+        List<Elevator> sameDirElevators = new ArrayList<>();
+
+        for (Elevator elevator : elevators){
+            if (request.getDirection() == elevator.getDirection(request)){
+                sameDirElevators.add(elevator);
+            }
+        }
+        return sameDirElevators;
+    }
+
+    public List<Elevator> getMinStopsElevators(List<Elevator> elevators,Request request){
+        List<Elevator> minStopElevators = new ArrayList<>();
+        int minStops = Integer.MAX_VALUE;
+
+        for (Elevator elevator: elevators){
+            int stops = elevator.getNoOfStops(request);
+            if (minStops > stops){
+                minStopElevators.add(elevator);
+                minStops = stops;
+            }
+        }
+        return minStopElevators;
+    }
+
+    public void displayElevators(){
+        for (Elevator elevator : elevators){
+            elevator.displayElevator();
+        }
+        System.out.println("------------------------");
+    }
+
+    public void setUnderMaintenance(Elevator elevator) {
+        elevator.setUnderMaintenance();
+    }
+
+    public void releaseUnderMaintenance(Elevator elevator){
+        elevator.releaseUnderMaintenance();
+    }
+}
