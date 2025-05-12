@@ -1,0 +1,6 @@
+public record Request(int source, int destination) {
+
+    public Direction getDirection() {
+        return (source < destination) ? Direction.UP : Direction.DOWN;
+    }
+}
